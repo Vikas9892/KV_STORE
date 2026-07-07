@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstddef>
-#include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 
@@ -17,6 +17,6 @@ public:
     std::size_t size()   const;
 
 private:
-    mutable std::mutex                           m_mutex;
-    std::unordered_map<std::string, std::string> m_map;
+    mutable std::shared_mutex                          m_mutex;
+    std::unordered_map<std::string, std::string>       m_map;
 };

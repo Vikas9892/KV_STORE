@@ -1,5 +1,6 @@
 #include "core/kv_store.h"
-#include <mutex>
+
+#include <shared_mutex>
 
 void KVStore::set(const std::string& key, std::string value) {
     std::unique_lock lock(m_mutex);
@@ -17,18 +18,18 @@ void KVStore::clear() {
 }
 
 std::optional<std::string> KVStore::get(const std::string& key) const {
-    std::unique_lock lock(m_mutex);
+    std::shared_lock lock(m_mutex);
     auto it = m_map.find(key);
     if (it == m_map.end()) return std::nullopt;
     return it->second;
 }
 
 bool KVStore::exists(const std::string& key) const {
-    std::unique_lock lock(m_mutex);
+    std::shared_lock lock(m_mutex);
     return m_map.count(key) != 0;
 }
 
 std::size_t KVStore::size() const {
-    std::unique_lock lock(m_mutex);
+    std::shared_lock lock(m_mutex);
     return m_map.size();
 }
