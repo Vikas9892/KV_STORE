@@ -2,12 +2,16 @@
 
 #include "config/config.h"
 #include "core/kv_store.h"
+#include "core/snapshot_manager.h"
 #include "network/socket.h"
 #include "threadpool/thread_pool.h"
+
+#include <memory>
 
 class TcpServer {
 public:
     explicit TcpServer(const Config& cfg);
+    ~TcpServer();
 
     TcpServer(const TcpServer&)            = delete;
     TcpServer& operator=(const TcpServer&) = delete;
@@ -17,7 +21,8 @@ public:
 
 private:
     Config     m_cfg;
-    Socket     m_listener;
     KVStore    m_store;
     ThreadPool m_pool;
+    std::unique_ptr<SnapshotManager> m_snap_mgr;
+    Socket     m_listener;
 };
