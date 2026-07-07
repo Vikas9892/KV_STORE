@@ -36,6 +36,7 @@ bool KVStore::del(const std::string& key) {
 void KVStore::clear() {
     std::unique_lock lock(m_mutex);
     m_map.clear();
+    m_map.rehash(0);    // release bucket array back to the allocator
     m_wal.log_clear();
 }
 

@@ -1,8 +1,6 @@
 #include "network/protocol.h"
 
-#include <algorithm>
 #include <cctype>
-#include <sstream>
 
 Response Response::ok()                { return {Type::OK, "OK", 0}; }
 Response Response::value(std::string v){ return {Type::VALUE, std::move(v), 0}; }
@@ -19,28 +17,48 @@ std::string Response::serialize() const {
     return "-ERR internal\r\n";
 }
 
+// Zero-copy case-insensitive comparison — avoids heap allocation for each token
+static bool sv_ieq(std::string_view a, std::string_view b) {
+    if (a.size() != b.size()) return false;
+    for (std::size_t i = 0; i < a.size(); ++i)
+        if (std::toupper((unsigned char)a[i]) != std::toupper((unsigned char)b[i]))
+            return false;
+    return true;
+}
+
 Command CommandParser::to_command(std::string_view token) {
-    std::string up(token);
-    std::transform(up.begin(), up.end(), up.begin(),
-                   [](unsigned char c){ return std::toupper(c); });
-    if (up == "GET")    return Command::GET;
-    if (up == "SET")    return Command::SET;
-    if (up == "DELETE" || up == "DEL") return Command::DELETE;
-    if (up == "EXISTS") return Command::EXISTS;
-    if (up == "SIZE")   return Command::SIZE;
-    if (up == "CLEAR")  return Command::CLEAR;
-    if (up == "PING")   return Command::PING;
+    if (sv_ieq(token, "GET"))    return Command::GET;
+    if (sv_ieq(token, "SET"))    return Command::SET;
+    if (sv_ieq(token, "DELETE") || sv_ieq(token, "DEL")) return Command::DELETE;
+    if (sv_ieq(token, "EXISTS")) return Command::EXISTS;
+    if (sv_ieq(token, "SIZE"))   return Command::SIZE;
+    if (sv_ieq(token, "CLEAR"))  return Command::CLEAR;
+    if (sv_ieq(token, "PING"))   return Command::PING;
     return Command::UNKNOWN;
 }
 
 Request CommandParser::parse(std::string_view line) {
-    std::istringstream ss{std::string(line)};
-    Request req;
-    std::string token;
-    if (!(ss >> token)) return req;
-    req.cmd = to_command(token);
-    if (ss >> token) req.key = token;
-    std::string rest;
-    if (std::getline(ss >> std::ws, rest)) req.value = rest;
+    // Strip trailing \r if present (telnet / Windows clients)
+    if (!line.empty() && line.back() == '\r') line.remove_suffix(1);
+
+    Request     req;
+    std::size_t i = 0;
+
+    while (i < line.size() && line[i] == ' ') ++i;
+
+    std::size_t start = i;
+    while (i < line.size() && line[i] != ' ') ++i;
+    if (start == i) return req;
+
+    req.cmd = to_command(line.substr(start, i - start));
+
+    while (i < line.size() && line[i] == ' ') ++i;
+    start = i;
+    while (i < line.size() && line[i] != ' ') ++i;
+    req.key = std::string(line.substr(start, i - start));
+
+    while (i < line.size() && line[i] == ' ') ++i;
+    req.value = std::string(line.substr(i));
+
     return req;
 }
