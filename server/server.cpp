@@ -6,17 +6,18 @@
 #include <thread>
 
 TcpServer::TcpServer(const ServerConfig& cfg)
-    : m_listener(Socket::listen_on(cfg.port)), m_port(cfg.port) {}
+    : m_listener(Socket::listen_on(cfg.port))
+    , m_port(cfg.port)
+    , m_pool(cfg.workers == 0 ? std::thread::hardware_concurrency() : cfg.workers) {}
 
 void TcpServer::run() {
     while (true) {
         std::string peer;
         Socket sock = m_listener.accept_client(peer);
-        // Spawn one std::thread per connection; detach so the server loop
-        // can immediately accept the next client.
-        std::thread([s = std::move(sock), p = std::move(peer), this]() mutable {
+        // Pool bounds memory vs. spawning unbounded threads per connection
+        m_pool.enqueue([s = std::move(sock), p = std::move(peer), this]() mutable {
             ClientSession(std::move(s), std::move(p), m_store).handle();
-        }).detach();
+        });
     }
 }
 

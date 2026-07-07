@@ -24,4 +24,5 @@ find_package(Threads REQUIRED)
 
 add_subdirectory(core)
 add_subdirectory(network)
+add_subdirectory(threadpool)
 add_subdirectory(server)
