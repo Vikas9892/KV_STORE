@@ -20,6 +20,11 @@ TcpServer::TcpServer(const Config& cfg)
             m_cfg.snapshot_path,
             std::chrono::seconds(cfg.snapshot_interval_s));
     }
+    if (!cfg.replica_host.empty()) {
+        m_replicator = std::make_unique<Replicator>(cfg.replica_host, cfg.replica_port);
+        LOG_INFO("[server] replication → " + cfg.replica_host +
+                 ":" + std::to_string(cfg.replica_port));
+    }
     SignalHandler::install();
     LOG_INFO("[server] port=" + std::to_string(cfg.port) +
              " workers=" + std::to_string(m_pool.thread_count()));
@@ -52,7 +57,7 @@ void TcpServer::run() {
             std::string peer;
             Socket sock = m_listener.accept_client(peer);
             m_pool.enqueue([s = std::move(sock), p = std::move(peer), this]() mutable {
-                ClientSession(std::move(s), std::move(p), m_store).handle();
+                ClientSession(std::move(s), std::move(p), m_store, m_replicator.get()).handle();
             });
         }
     }

@@ -2,8 +2,10 @@
 #include "utils/logger.h"
 #include "utils/metrics.h"
 
-ClientSession::ClientSession(Socket sock, std::string peer, KVStore& store)
-    : m_sock(std::move(sock)), m_peer(std::move(peer)), m_store(store) {
+ClientSession::ClientSession(Socket sock, std::string peer,
+                             KVStore& store, Replicator* replicator)
+    : m_sock(std::move(sock)), m_peer(std::move(peer))
+    , m_store(store), m_replicator(replicator) {
     METRICS_INC(connected_clients);
 }
 
@@ -47,6 +49,7 @@ Response ClientSession::dispatch(const Request& req) {
             if (req.key.empty()) { METRICS_INC(cmd_errors); return Response::error("usage: SET key value"); }
             m_store.set(req.key, req.value);
             METRICS_INC(cmd_set);
+            if (m_replicator) m_replicator->forward_set(req.key, req.value);
             return Response::ok();
 
         case Command::GET: {
@@ -59,7 +62,10 @@ Response ClientSession::dispatch(const Request& req) {
         case Command::DELETE:
             if (req.key.empty()) { METRICS_INC(cmd_errors); return Response::error("usage: DELETE key"); }
             METRICS_INC(cmd_delete);
-            if (m_store.del(req.key)) return Response::ok();
+            if (m_store.del(req.key)) {
+                if (m_replicator) m_replicator->forward_del(req.key);
+                return Response::ok();
+            }
             return Response::error("NOT_FOUND");
 
         case Command::EXISTS:
@@ -74,6 +80,7 @@ Response ClientSession::dispatch(const Request& req) {
         case Command::CLEAR:
             METRICS_INC(cmd_clear);
             m_store.clear();
+            if (m_replicator) m_replicator->forward_clear();
             return Response::ok();
 
         case Command::STATS:
@@ -84,6 +91,7 @@ Response ClientSession::dispatch(const Request& req) {
                 return Response::error("usage: SETEX key seconds value");
             m_store.setex(req.key, req.value, req.ttl_seconds);
             METRICS_INC(cmd_set);
+            if (m_replicator) m_replicator->forward_setex(req.key, req.value, req.ttl_seconds);
             return Response::ok();
 
         case Command::TTL: {
