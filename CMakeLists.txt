@@ -22,5 +22,6 @@ add_link_options("$<$<CONFIG:Debug>:-fsanitize=address,undefined>")
 
 find_package(Threads REQUIRED)
 
+add_subdirectory(core)
 add_subdirectory(network)
 add_subdirectory(server)
