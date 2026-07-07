@@ -1,0 +1,12 @@
+{
+    "port": 7379,
+    "workers": 0,
+    "max_clients": 1024,
+    "log_level": "INFO",
+    "wal_path": "kv.log",
+    "snapshot_path": "kv.snap",
+    "snapshot_interval_s": 300,
+    "kv_initial_capacity": 0,
+    "replica_host": "",
+    "replica_port": 7380
+}
