@@ -1,18 +1,28 @@
 #include "server/client_session.h"
+#include "utils/logger.h"
 
 ClientSession::ClientSession(Socket sock, std::string peer, KVStore& store)
     : m_sock(std::move(sock)), m_peer(std::move(peer)), m_store(store) {}
 
 void ClientSession::handle() {
+    LOG_DEBUG("[session] start " + m_peer);
+
     while (true) {
         auto line = m_sock.recv_line();
         if (!line) break;
         if (line->empty()) continue;
 
+        LOG_DEBUG("[session] recv [" + m_peer + "] " + *line);
+
         Request  req  = CommandParser::parse(*line);
         Response resp = dispatch(req);
-        m_sock.send_all(resp.serialize());
+
+        std::string wire = resp.serialize();
+        LOG_DEBUG("[session] send [" + m_peer + "] " + wire);
+        m_sock.send_all(wire);
     }
+
+    LOG_DEBUG("[session] close " + m_peer);
 }
 
 Response ClientSession::dispatch(const Request& req) {
