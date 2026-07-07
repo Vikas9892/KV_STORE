@@ -26,6 +26,7 @@ add_subdirectory(core)
 add_subdirectory(network)
 add_subdirectory(threadpool)
 add_subdirectory(config)
+add_subdirectory(client)
 add_subdirectory(benchmark)
 add_subdirectory(server)
 
