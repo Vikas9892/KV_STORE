@@ -9,7 +9,7 @@
 class ClientSession {
 public:
     ClientSession(Socket sock, std::string peer, KVStore& store);
-    ~ClientSession() = default;
+    ~ClientSession();
 
     ClientSession(const ClientSession&)            = delete;
     ClientSession& operator=(const ClientSession&) = delete;
