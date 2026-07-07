@@ -17,7 +17,6 @@ std::string Response::serialize() const {
     return "-ERR internal\r\n";
 }
 
-// Zero-copy case-insensitive comparison — avoids heap allocation for each token
 static bool sv_ieq(std::string_view a, std::string_view b) {
     if (a.size() != b.size()) return false;
     for (std::size_t i = 0; i < a.size(); ++i)
@@ -34,18 +33,19 @@ Command CommandParser::to_command(std::string_view token) {
     if (sv_ieq(token, "SIZE"))   return Command::SIZE;
     if (sv_ieq(token, "CLEAR"))  return Command::CLEAR;
     if (sv_ieq(token, "PING"))   return Command::PING;
+    if (sv_ieq(token, "SETEX"))  return Command::SETEX;
+    if (sv_ieq(token, "TTL"))    return Command::TTL;
+    if (sv_ieq(token, "STATS"))  return Command::STATS;
     return Command::UNKNOWN;
 }
 
 Request CommandParser::parse(std::string_view line) {
-    // Strip trailing \r if present (telnet / Windows clients)
     if (!line.empty() && line.back() == '\r') line.remove_suffix(1);
 
     Request     req;
     std::size_t i = 0;
 
     while (i < line.size() && line[i] == ' ') ++i;
-
     std::size_t start = i;
     while (i < line.size() && line[i] != ' ') ++i;
     if (start == i) return req;
@@ -53,12 +53,29 @@ Request CommandParser::parse(std::string_view line) {
     req.cmd = to_command(line.substr(start, i - start));
 
     while (i < line.size() && line[i] == ' ') ++i;
-    start = i;
-    while (i < line.size() && line[i] != ' ') ++i;
-    req.key = std::string(line.substr(start, i - start));
 
-    while (i < line.size() && line[i] == ' ') ++i;
-    req.value = std::string(line.substr(i));
+    if (req.cmd == Command::SETEX) {
+        // SETEX key seconds value
+        start = i;
+        while (i < line.size() && line[i] != ' ') ++i;
+        req.key = std::string(line.substr(start, i - start));
+
+        while (i < line.size() && line[i] == ' ') ++i;
+        start = i;
+        while (i < line.size() && line[i] != ' ') ++i;
+        std::string secs(line.substr(start, i - start));
+        req.ttl_seconds = secs.empty() ? 0 : std::stoll(secs);
+
+        while (i < line.size() && line[i] == ' ') ++i;
+        req.value = std::string(line.substr(i));
+    } else {
+        start = i;
+        while (i < line.size() && line[i] != ' ') ++i;
+        req.key = std::string(line.substr(start, i - start));
+
+        while (i < line.size() && line[i] == ' ') ++i;
+        req.value = std::string(line.substr(i));
+    }
 
     return req;
 }

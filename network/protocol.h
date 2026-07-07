@@ -4,12 +4,13 @@
 #include <string>
 #include <string_view>
 
-enum class Command { GET, SET, DELETE, EXISTS, SIZE, CLEAR, PING, UNKNOWN };
+enum class Command { GET, SET, DELETE, EXISTS, SIZE, CLEAR, PING, SETEX, TTL, STATS, UNKNOWN };
 
 struct Request {
-    Command     cmd = Command::UNKNOWN;
+    Command     cmd         = Command::UNKNOWN;
     std::string key;
     std::string value;
+    int64_t     ttl_seconds = 0;
 };
 
 struct Response {
