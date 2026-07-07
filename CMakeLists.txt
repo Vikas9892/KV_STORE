@@ -28,3 +28,6 @@ add_subdirectory(threadpool)
 add_subdirectory(config)
 add_subdirectory(benchmark)
 add_subdirectory(server)
+
+enable_testing()
+add_subdirectory(tests)
