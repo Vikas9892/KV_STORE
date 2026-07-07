@@ -56,8 +56,9 @@ void TcpServer::run() {
         if (FD_ISSET(listen_fd, &rfds)) {
             std::string peer;
             Socket sock = m_listener.accept_client(peer);
-            m_pool.enqueue([s = std::move(sock), p = std::move(peer), this]() mutable {
-                ClientSession(std::move(s), std::move(p), m_store, m_replicator.get()).handle();
+            auto sock_ptr = std::make_shared<Socket>(std::move(sock));
+            m_pool.enqueue([sock_ptr, p = std::move(peer), this]() mutable {
+                ClientSession(std::move(*sock_ptr), std::move(p), m_store, m_replicator.get()).handle();
             });
         }
     }

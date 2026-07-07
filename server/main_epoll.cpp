@@ -27,11 +27,7 @@ int main(int argc, char* argv[]) {
     SignalHandler::install();
 
     try {
-        KVStore store(KVStoreOptions{
-            .wal_path      = cfg.wal_path,
-            .snapshot_path = cfg.snapshot_path,
-            .initial_cap   = cfg.kv_initial_capacity,
-        });
+        KVStore store(cfg.wal_path, cfg.snapshot_path, cfg.kv_initial_capacity);
         EpollServer server(cfg.port, store, cfg.workers);
         server.run();
     } catch (const std::exception& e) {
