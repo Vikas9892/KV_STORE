@@ -440,3 +440,9 @@ Full design journey across 20 phases, each introducing one system capability:
 | 19 | TTL — `SETEX` / `TTL`, lazy expiry on GET, background reaper thread |
 | 20 | Replication — leader→replica TCP forwarding, heartbeat, re-queue on failure |
 
+---
+
+## Author
+
+Built by [Vikas Tiwari](https://github.com/Vikas9892).
+
